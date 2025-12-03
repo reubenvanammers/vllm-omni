@@ -48,6 +48,12 @@ _OMNI_MODELS = {
         "qwen3_omni_code2wav",
         "Qwen3OmniMoeCode2Wav",
     ),
+    # CelestialGiraffe models (Gemma3 + CLIP embedding prediction)
+    "CelestialGiraffeForConditionalGeneration": (
+        "celestial_giraffe",
+        "celestial_giraffe",
+        "CelestialGiraffeForConditionalGeneration",
+    ),
 }
 
 _VLLM_OMNI_MODELS = {
