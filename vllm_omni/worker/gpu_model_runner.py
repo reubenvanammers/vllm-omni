@@ -309,14 +309,30 @@ class OmniGPUModelRunner(GPUModelRunner):
     @torch.inference_mode()
     def extract_multimodal_outputs(self, hidden_states: Union[torch.Tensor, list[torch.Tensor]]) -> dict:
         if hasattr(self.model, "have_multimodal_outputs") and self.model.have_multimodal_outputs:
-            text_hidden_states = hidden_states.text_hidden_states
-            multimodal_outputs = hidden_states.multimodal_outputs
-
+            # Check if it's an OmniOutput object with the expected attributes
+            if hasattr(hidden_states, "text_hidden_states") and hasattr(hidden_states, "multimodal_outputs"):
+                text_hidden_states = hidden_states.text_hidden_states
+                multimodal_outputs = hidden_states.multimodal_outputs
+            elif isinstance(hidden_states, tuple):
+                # During CUDA graph capture, NamedTuple (OmniOutput) is converted to regular tuple
+                # OmniOutput structure: (text_hidden_states, multimodal_outputs, intermediate_tensors, next_token_id)
+                text_hidden_states = hidden_states[0] if len(hidden_states) > 0 else hidden_states
+                multimodal_outputs = hidden_states[1] if len(hidden_states) > 1 else {}
+            elif isinstance(hidden_states, torch.Tensor):
+                text_hidden_states = hidden_states
+                multimodal_outputs = {}
+            else:
+                text_hidden_states = hidden_states
+                multimodal_outputs = {}
         elif isinstance(hidden_states, torch.Tensor):
             text_hidden_states = hidden_states
             multimodal_outputs = {}
         elif isinstance(hidden_states, list):
             text_hidden_states = hidden_states[0]
+            multimodal_outputs = {}
+        elif isinstance(hidden_states, tuple):
+            # Handle tuple case even when model doesn't have have_multimodal_outputs
+            text_hidden_states = hidden_states[0] if len(hidden_states) > 0 else hidden_states
             multimodal_outputs = {}
         else:
             raise ValueError(f"Invalid hidden states type: {type(hidden_states)}")

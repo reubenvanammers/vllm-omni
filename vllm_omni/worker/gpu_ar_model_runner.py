@@ -152,11 +152,20 @@ class GPUARModelRunner(OmniGPUModelRunner):
                 hidden_states = model_output
                 aux_hidden_states = None
 
-            # hidden_states, multimodal_outputs = self.extract_multimodal_outputs(
-            #     hidden_states
-            # )
-            multimodal_outputs = model_output.multimodal_outputs
-            hidden_states = model_output.text_hidden_states
+            # Extract multimodal outputs if present
+            # Handle OmniOutput (NamedTuple with attributes), tuple (CUDA graph), or tensor
+            if hasattr(model_output, "multimodal_outputs") and hasattr(model_output, "text_hidden_states"):
+                # OmniOutput with attributes (eager mode or before CUDA graph)
+                multimodal_outputs = model_output.multimodal_outputs
+                hidden_states = model_output.text_hidden_states
+            elif isinstance(model_output, tuple) and len(model_output) >= 2:
+                # During CUDA graph capture, OmniOutput (NamedTuple) becomes regular tuple
+                # OmniOutput structure: (text_hidden_states, multimodal_outputs, intermediate_tensors, next_token_id)
+                hidden_states = model_output[0]
+                multimodal_outputs = model_output[1] if model_output[1] is not None else {}
+            else:
+                # Standard tensor output (no multimodal outputs)
+                multimodal_outputs = {}
             # The model side may return per-request additional_information updates (model-agnostic channel).
             # Convention: multimodal_outputs["additional_information_update"] is a list[dict] in batch order;
             # the runner merges it into the corresponding request's additional_information_cpu for subsequent decode.
