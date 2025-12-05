@@ -310,9 +310,9 @@ class GPUARModelRunner(OmniGPUModelRunner):
                                     )
                             if sub_dict:
                                 mm_payload[k] = sub_dict
-                        elif isinstance(v, list):
+                        elif isinstance(v, list) and len(v) > 0:
                             element: torch.Tensor = v[0]
-                            multimodal_outputs[k] = v[1:] if len(v) > 1 else v
+                            multimodal_outputs[k] = v[1:] if len(v) > 1 else []
                             mm_payload[k] = element
                     except Exception as e:
                         # Best-effort; skip malformed entries
